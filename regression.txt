@@ -1,0 +1,38 @@
+clear all
+set seed 12345  // reproducibilidad
+cd "/home/roland/Dropbox/USM/Investigacion/Automoviles Modelo Insurance/Codigos/Regresion/"
+import delimited "complet_data.csv", clear
+
+* tratamiento
+encode genero, gen(Genero)
+encode grupoedad, gen(Grupoedad)
+encode grupoestadocivil, gen(Grupoestadocivil)
+encode gruposcorecrediticio, gen(Gruposcorecrediticio)
+encode grupocantidadpropiedades, gen(Grupocantidadpropiedades)
+encode grupocantidadvehiculos, gen(Grupocantidadvehiculos)
+encode grupohistorialsiniestros, gen(Grupohistorialsiniestros)
+encode grupocilindrada, gen(Grupocilindrada)
+encode fechasubasta, gen(Fechasubasta)
+
+drop genero grupoedad grupoestadocivil gruposcorecrediticio gruposcorecrediticio grupocantidadpropiedades grupohistorialsiniestros grupocilindrada grupocantidadvehiculos fechasubasta
+gen ln_tasacion = ln(tasacion)
+*******************************************************************************
+
+*----------------------------------------------------------
+* 1. Separar en TRAIN (70%) y TEST (30%)
+*----------------------------------------------------------
+gen u = runiform()
+gen grupo = cond(u < 0.8, "train", "test")
+drop u
+
+eststo: hetregress media antiguedad ln_tasacion i.Genero i.Gruposcorecrediticio i.Grupohistorialsiniestros if grupo == "train",  het(ln_tasacion antiguedad)
+eststo: hetregress media ln_tasacion antiguedad i.Genero i.Gruposcorecrediticio i.Grupohistorialsiniestros i.Grupoedad i.Grupoestadocivil  i.Grupocantidadpropiedades i.Grupocantidadvehiculos  i.Grupocilindrada i.Fechasubasta if grupo == "train",  het(ln_tasacion antiguedad)
+predict media_hat, xb
+
+eststo: hetregress sd antiguedad ln_tasacion  i.Genero i.Gruposcorecrediticio i.Grupohistorialsiniestros if grupo == "train",  het(ln_tasacion antiguedad)
+eststo: hetregress sd antiguedad ln_tasacion  i.Genero i.Gruposcorecrediticio i.Grupohistorialsiniestros i.Grupoedad i.Grupoestadocivil i.Grupocantidadpropiedades i.Grupocantidadvehiculos  i.Grupocilindrada i.Fechasubasta if grupo == "train",  het(ln_tasacion antiguedad)
+esttab using media_sd_hat.tex, star(* 0.10 ** 0.05 *** 0.01) replace
+predict sd_hat, xb
+
+
+
